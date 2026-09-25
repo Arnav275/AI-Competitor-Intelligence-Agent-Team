@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>INTEL EVAL — Evaluation Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080b0f; --surface: #0e1318; --surface2: #121924; --border: #1c2530; --border2: #243040;
+  --accent: #00e5ff; --accent2: #ff3d71; --accent3: #39ff9c; --accent4: #ffd166;
+  --text: #c8d8e8; --muted: #4a6070; --white: #eaf4ff;
+  --font-d: 'Syne', sans-serif; --font-m: 'JetBrains Mono', monospace; --r: 8px;
+  --glow-c: 0 0 20px rgba(0,229,255,.18); --glow-r: 0 0 20px rgba(255,61,113,.18); --glow-g: 0 0 20px rgba(57,255,156,.18);
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-m); background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; }
+header {
+  display: flex; align-items: center; justify-content: space-between; padding: 20px 0;
+  border-bottom: 1px solid var(--border); margin-bottom: 32px; position: sticky; top: 0;
+  background: rgba(8,11,15,.92); backdrop-filter: blur(12px); z-index: 50;
+}
+.logo { font-family: var(--font-d); font-size: 20px; font-weight: 800; letter-spacing: .1em; color: var(--white); display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 28px; height: 28px; border: 2px solid var(--accent); border-radius: 4px; display: grid; place-items: center; box-shadow: var(--glow-c); }
+.logo-icon::before { content: ''; width: 9px; height: 9px; background: var(--accent); clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+.logo-sub { font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
+h1.page-title { font-family: var(--font-d); font-size: 28px; font-weight: 800; color: var(--white); margin: 4px 0 6px; }
+p.page-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; max-width: 640px; line-height: 1.6; }
+
+.input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+input#urlInput {
+  flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
+  color: var(--white); padding: 13px 16px; font-family: var(--font-m); font-size: 13px; outline: none;
+}
+input#urlInput:focus { border-color: var(--accent); box-shadow: var(--glow-c); }
+.btn-run {
+  position: relative; overflow: hidden; background: var(--accent); color: #06121a; border: none;
+  border-radius: var(--r); padding: 13px 26px; font-family: var(--font-d); font-weight: 700;
+  font-size: 13px; letter-spacing: .05em; cursor: pointer; white-space: nowrap;
+}
+.btn-run:hover { box-shadow: var(--glow-c); }
+.btn-run:disabled { opacity: .5; cursor: not-allowed; }
+.hint { font-size: 11px; color: var(--muted); margin-bottom: 28px; }
+
+.progress-wrap { display: none; margin-bottom: 28px; }
+.progress-wrap.show { display: block; }
+.progress-bar-bg { height: 4px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width .4s ease; }
+.progress-msg { font-size: 12px; color: var(--muted); }
+
+.section-title { font-family: var(--font-d); font-size: 16px; font-weight: 700; color: var(--white); margin: 40px 0 16px; letter-spacing: .02em; }
+.section-title span { color: var(--accent); }
+
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
+.metric-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.metric-values { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.metric-num { font-family: var(--font-d); font-size: 26px; font-weight: 800; color: var(--white); }
+.metric-num.good { color: var(--accent3); }
+.metric-num.bad { color: var(--accent2); }
+.metric-vs { font-size: 11px; color: var(--muted); }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 10px; color: var(--muted); }
+.bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; }
+.bar-fill.ma { background: var(--accent); }
+.bar-fill.bl { background: var(--muted); }
+.metric-note { font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+table.compare-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+.compare-table th, .compare-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.compare-table th { color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
+.compare-table td.this-system { color: var(--accent3); }
+.compare-table tr:hover { background: var(--surface); }
+
+.claims-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; font-size: 12px; margin-top: 10px; }
+.claims-box h4 { color: var(--accent2); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.claims-box ul { padding-left: 18px; color: var(--text); line-height: 1.7; }
+.claims-box.empty { color: var(--muted); }
+
+.log { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 16px; font-size: 11px; color: var(--muted); max-height: 140px; overflow-y: auto; margin-bottom: 8px; }
+.log div { padding: 2px 0; }
+.error-box { background: rgba(255,61,113,.08); border: 1px solid var(--accent2); border-radius: var(--r); padding: 14px 16px; color: var(--accent2); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><div class="logo-icon"></div><div>INTEL <span style="color:var(--accent)">EVAL</span><div class="logo-sub">Evaluation Suite</div></div></div>
+  </header>
+
+  <h1 class="page-title">Evaluation Dashboard</h1>
+  <p class="page-sub">
+    Runs the multi-agent pipeline (Scraper → Analyst) AND a naive, ungrounded single-prompt
+    baseline on the same URL, then scores both against the same rubric: Accuracy, Completeness,
+    Insight Quality, Hallucination Rate, and Response Time.
+  </p>
+
+  <div class="input-row">
+    <input id="urlInput" type="text" placeholder="https://competitor-website.com" value="https://stripe.com" />
+    <button class="btn-run" id="btnRun" onclick="runEvaluation()">▶ Run Evaluation</button>
+  </div>
+  <div class="hint">Requires FIRECRAWL_API_KEY and GROQ_API_KEY set on the evaluation server (port 8001).</div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-msg" id="progressMsg">Starting…</div>
+    <div class="log" id="logBox" style="margin-top:10px;"></div>
+  </div>
+
+  <div id="errorArea"></div>
+  <div id="resultsArea" style="display:none;">
+
+    <div class="section-title">1 · 5-Metric Scorecard <span>· multi-agent vs. naive baseline</span></div>
+    <div id="groundingNote" style="display:none;"></div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+
+    <div class="section-title">2 · Ungrounded / Unsupported Claims Found</div>
+    <div id="claimsArea"></div>
+
+    <div class="section-title">3 · Why the Multi-Agent System Beats Other Competitor Intelligence Tools</div>
+    <table class="compare-table" id="compareTable"></table>
+  </div>
+</div>
+
+<script>
+let es = null;
+
+function addLog(msg) {
+  const box = document.getElementById('logBox');
+  const d = document.createElement('div');
+  d.textContent = msg;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressMsg').textContent = msg;
+  addLog(`[${pct}%] ${msg}`);
+}
+
+function runEvaluation() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('progressWrap').classList.add('show');
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('errorArea').innerHTML = '';
+  document.getElementById('logBox').innerHTML = '';
+  setProgress(0, 'Connecting…');
+
+  es = new EventSource(`/evaluate/stream?url=${encodeURIComponent(url)}`);
+
+  es.addEventListener('progress', e => {
+    const d = JSON.parse(e.data);
+    setProgress(d.pct, d.message);
+  });
+
+  es.addEventListener('report', e => {
+    const d = JSON.parse(e.data);
+    renderReport(d);
+    document.getElementById('btnRun').disabled = false;
+    es.close();
+  });
+
+  es.addEventListener('error', e => {
+    let msg = 'Connection error';
+    try { msg = JSON.parse(e.data).message; } catch (_) {}
+    document.getElementById('errorArea').innerHTML = `<div class="error-box">⚠ ${esc(msg)}</div>`;
+    document.getElementById('btnRun').disabled = false;
+    if (es) es.close();
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function metricCard(label, maVal, blVal, unit, lowerIsBetter) {
+  const maNum = (maVal === null || maVal === undefined) ? null : Number(maVal);
+  const blNum = (blVal === null || blVal === undefined) ? null : Number(blVal);
+  const maStr = maNum === null ? 'N/A' : maNum + unit;
+  const blStr = blNum === null ? 'N/A' : blNum + unit;
+  let cls = '';
+  if (maNum !== null && blNum !== null) {
+    const maBetter = lowerIsBetter ? maNum <= blNum : maNum >= blNum;
+    cls = maBetter ? 'good' : 'bad';
+  }
+  const maxScale = unit === 's' ? Math.max(maNum||1, blNum||1) : 100;
+  const maPct = maNum === null ? 0 : Math.min(100, (maNum / maxScale) * 100);
+  const blPct = blNum === null ? 0 : Math.min(100, (blNum / maxScale) * 100);
+  return `
+    <div class="metric-card">
+      <div class="metric-label">${label}</div>
+      <div class="metric-values"><span class="metric-num ${cls}">${maStr}</span><span class="metric-vs">vs baseline ${blStr}</span></div>
+      <div class="bar-row"><span style="width:38px">Agent</span><div class="bar-track"><div class="bar-fill ma" style="width:${maPct}%"></div></div></div>
+      <div class="bar-row"><span style="width:38px">Base</span><div class="bar-track"><div class="bar-fill bl" style="width:${blPct}%"></div></div></div>
+    </div>`;
+}
+
+function renderReport(d) {
+  const ma = d.multi_agent, bl = d.naive_baseline;
+  const grid = document.getElementById('metricsGrid');
+  grid.innerHTML =
+    metricCard('Accuracy', ma.accuracy, bl.accuracy, '%', false) +
+    metricCard('Completeness', ma.completeness, bl.completeness, '%', false) +
+    metricCard('Insight Quality', ma.insight_quality, bl.insight_quality, '%', false) +
+    metricCard('Hallucination Rate', ma.hallucination_rate, bl.hallucination_rate, '%', true) +
+    metricCard('Response Time', ma.response_time_seconds, bl.response_time_seconds, 's', false);
+
+  const groundingErr = (ma.details && ma.details.grounding_error) || (bl.details && bl.details.grounding_error) || '';
+  const noteBox = document.getElementById('groundingNote');
+  if (groundingErr && (ma.accuracy === null || ma.accuracy === undefined)) {
+    noteBox.style.display = 'block';
+    noteBox.innerHTML = `<div class="error-box" style="margin-bottom:14px;">⚠ Accuracy / Hallucination Rate are N/A — could not fetch a ground-truth source to score against: ${esc(groundingErr)}</div>`;
+  } else {
+    noteBox.style.display = 'none';
+    noteBox.innerHTML = '';
+  }
+
+  const maClaims = (ma.details && ma.details.ungrounded_claims) || [];
+  const blClaims = (bl.details && bl.details.ungrounded_claims) || [];
+  let claimsHtml = '';
+  claimsHtml += `<div class="claims-box ${maClaims.length ? '' : 'empty'}"><h4>Multi-Agent — Ungrounded Claims (${maClaims.length})</h4>` +
+    (maClaims.length ? `<ul>${maClaims.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : `<div>None found — every extracted claim was grounded in the source.</div>`) + `</div>`;
+  claimsHtml += `<div class="claims-box ${blClaims.length ? '' : 'empty'}" style="margin-top:10px;"><h4 style="color:var(--accent4)">Naive Baseline — Ungrounded Claims (${blClaims.length})</h4>` +
+    (blClaims.length ? `<ul>${blClaims.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : `<div>None found.</div>`) + `</div>`;
+  document.getElementById('claimsArea').innerHTML = claimsHtml;
+
+  const rows = d.comparison || [];
+  let tableHtml = `<tr><th>Aspect</th><th>This System</th><th>Generic LLM Prompt</th><th>Human Analyst</th><th>CI Tools (Klue / Crayon / Kompyte)</th></tr>`;
+  rows.forEach(r => {
+    tableHtml += `<tr>
+      <td><strong style="color:var(--white)">${esc(r.aspect)}</strong></td>
+      <td class="this-system">${esc(r.this_system)}</td>
+      <td>${esc(r.generic_llm_prompt)}</td>
+      <td>${esc(r.manual_research)}</td>
+      <td>${esc(r.commercial_saas)}</td>
+    </tr>`;
+  });
+  document.getElementById('compareTable').innerHTML = tableHtml;
+
+  document.getElementById('resultsArea').style.display = 'block';
+}
+</script>
+</body>
+</html>

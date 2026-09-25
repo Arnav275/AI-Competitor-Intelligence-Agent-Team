@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>INTEL — Competitor Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+/* ── Reset & Variables ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080b0f;
+  --surface:   #0e1318;
+  --border:    #1c2530;
+  --border2:   #243040;
+  --accent:    #00e5ff;
+  --accent2:   #ff3d71;
+  --accent3:   #39ff9c;
+  --accent4:   #ffd166;
+  --text:      #c8d8e8;
+  --muted:     #4a6070;
+  --white:     #eaf4ff;
+  --font-d:    'Syne', sans-serif;
+  --font-m:    'JetBrains Mono', monospace;
+  --r:         8px;
+  --glow-c:    0 0 20px rgba(0,229,255,.18);
+  --glow-r:    0 0 20px rgba(255,61,113,.18);
+  --glow-g:    0 0 20px rgba(57,255,156,.18);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-m);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Scanline overlay ──────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg,
+    transparent, transparent 2px,
+    rgba(0,229,255,.012) 2px, rgba(0,229,255,.012) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* ── Noise grain ───────────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9998; opacity: .4;
+}
+
+/* ── Layout ────────────────────────────────────────────────── */
+.app { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+/* ── Header ────────────────────────────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 36px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,11,15,.9);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.logo {
+  font-family: var(--font-d);
+  font-size: 22px; font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--white);
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  display: grid; place-items: center;
+  position: relative;
+  box-shadow: var(--glow-c);
+}
+.logo-icon::before {
+  content: '';
+  width: 10px; height: 10px;
+  background: var(--accent);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  animation: pulse-logo 2.4s ease-in-out infinite;
+}
+@keyframes pulse-logo {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .6; transform: scale(.85); }
+}
+
+.logo-sub {
+  font-family: var(--font-m);
+  font-size: 10px; font-weight: 300;
+  letter-spacing: .25em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.header-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
+  letter-spacing: .08em;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent3);
+  box-shadow: 0 0 6px var(--accent3);
+  animation: blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Main layout ───────────────────────────────────────────── */
+main {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  min-height: calc(100vh - 61px);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+aside {
+  border-right: 1px solid var(--border);
+  padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 24px;
+  background: var(--surface);
+}
+
+.section-label {
+  font-size: 9px; font-weight: 500;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+}
+
+/* ── Mode tabs ─────────────────────────────────────────────── */
+.mode-tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 4px;
+}
+.tab {
+  padding: 9px 6px; border-radius: 5px;
+  font-family: var(--font-m); font-size: 11px;
+  font-weight: 500; letter-spacing: .06em;
+  text-align: center; cursor: pointer;
+  color: var(--muted);
+  transition: all .2s;
+  border: none; background: transparent;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  background: var(--border2);
+  color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ── Inputs ────────────────────────────────────────────────── */
+.url-list { display: flex; flex-direction: column; gap: 8px; }
+
+.url-row {
+  display: flex; align-items: center; gap: 8px;
+  animation: slide-in .25s ease;
+}
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.url-num {
+  font-size: 10px; color: var(--muted);
+  width: 18px; flex-shrink: 0; text-align: right;
+}
+
+.url-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 9px 12px;
+  font-family: var(--font-m); font-size: 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.url-input::placeholder { color: var(--muted); }
+.url-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,229,255,.1);
+}
+
+.btn-icon {
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--border2);
+  border-radius: 5px; cursor: pointer;
+  color: var(--muted); font-size: 14px;
+  display: grid; place-items: center;
+  transition: all .2s;
+}
+.btn-icon:hover {
+  border-color: var(--accent2); color: var(--accent2);
+}
+
+.btn-add {
+  width: 100%;
+  background: transparent; border: 1px dashed var(--border2);
+  border-radius: 5px; padding: 8px;
+  font-family: var(--font-m); font-size: 11px;
+  color: var(--muted); cursor: pointer;
+  transition: all .2s; letter-spacing: .06em;
+}
+.btn-add:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(0,229,255,.04);
+}
+
+/* ── Run button ────────────────────────────────────────────── */
+.btn-run {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, rgba(0,229,255,.12), rgba(0,229,255,.06));
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  font-family: var(--font-d); font-size: 14px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); cursor: pointer;
+  transition: all .25s;
+  position: relative; overflow: hidden;
+}
+.btn-run::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,229,255,.2), transparent);
+  opacity: 0; transition: opacity .25s;
+}
+.btn-run:hover { box-shadow: var(--glow-c); }
+.btn-run:hover::before { opacity: 1; }
+.btn-run:active { transform: scale(.98); }
+.btn-run:disabled {
+  opacity: .4; cursor: not-allowed; border-color: var(--border2); color: var(--muted);
+}
+.btn-run:disabled::before { display: none; }
+
+/* ── Progress bar ──────────────────────────────────────────── */
+.progress-wrap {
+  display: none;
+  flex-direction: column; gap: 8px;
+}
+.progress-wrap.visible { display: flex; }
+
+.progress-bar-bg {
+  height: 3px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  border-radius: 2px;
+  transition: width .5s ease;
+  box-shadow: 0 0 8px var(--accent);
+}
+.progress-msg {
+  font-size: 11px; color: var(--accent); letter-spacing: .04em;
+  min-height: 16px;
+  animation: flicker .1s ease;
+}
+@keyframes flicker { 0%,100%{opacity:1} 50%{opacity:.85} }
+
+/* ── Agent log ─────────────────────────────────────────────── */
+.agent-log {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px;
+  overflow-y: auto; max-height: 200px;
+  font-size: 11px; line-height: 1.7;
+}
+.log-line { display: flex; gap: 8px; }
+.log-time { color: var(--muted); flex-shrink: 0; }
+.log-text { color: var(--text); }
+.log-text.ok  { color: var(--accent3); }
+.log-text.err { color: var(--accent2); }
+.log-text.act { color: var(--accent); }
+
+/* ── Right panel ───────────────────────────────────────────── */
+.content-panel {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.content-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  padding: 0 28px; gap: 0;
+  background: var(--surface);
+}
+.ctab {
+  padding: 16px 20px;
+  font-family: var(--font-m); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  background: none; border-top: none; border-left: none; border-right: none;
+}
+.ctab:hover { color: var(--text); }
+.ctab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.ctab .badge {
+  display: inline-block; margin-left: 6px;
+  background: var(--border2); border-radius: 3px;
+  padding: 1px 5px; font-size: 9px; color: var(--muted);
+}
+.ctab.active .badge { background: rgba(0,229,255,.15); color: var(--accent); }
+
+.content-area {
+  flex: 1; overflow-y: auto; padding: 28px;
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 400px; gap: 16px;
+  color: var(--muted); text-align: center;
+}
+.empty-icon {
+  font-size: 48px; opacity: .3;
+  filter: grayscale(1);
+}
+.empty-state h3 {
+  font-family: var(--font-d); font-size: 18px;
+  color: var(--border2); font-weight: 700;
+}
+.empty-state p { font-size: 12px; line-height: 1.7; max-width: 320px; }
+
+/* ── Cards ─────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  animation: card-in .35s ease;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.company-name {
+  font-family: var(--font-d); font-size: 22px; font-weight: 800;
+  color: var(--white); line-height: 1;
+}
+.company-tag {
+  font-size: 12px; color: var(--muted); margin-top: 4px;
+  font-style: italic;
+}
+.company-url {
+  font-size: 10px; color: var(--accent);
+  letter-spacing: .06em;
+  margin-top: 3px;
+}
+
+.badge-pill {
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .08em;
+}
+.pill-blue  { background: rgba(0,229,255,.1);  color: var(--accent);  border: 1px solid rgba(0,229,255,.2); }
+.pill-green { background: rgba(57,255,156,.1); color: var(--accent3); border: 1px solid rgba(57,255,156,.2); }
+.pill-red   { background: rgba(255,61,113,.1); color: var(--accent2); border: 1px solid rgba(255,61,113,.2); }
+.pill-gold  { background: rgba(255,209,102,.1);color: var(--accent4); border: 1px solid rgba(255,209,102,.2); }
+
+/* ── Info grid ─────────────────────────────────────────────── */
+.info-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
+}
+.info-cell {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+}
+.info-cell-label {
+  font-size: 9px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 5px;
+}
+.info-cell-val {
+  font-size: 12px; color: var(--text); line-height: 1.5;
+}
+
+/* ── Chip lists ────────────────────────────────────────────── */
+.chip-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 4px;
+}
+.chip {
+  padding: 3px 9px; border-radius: 4px;
+  font-size: 11px; background: var(--bg);
+  border: 1px solid var(--border2); color: var(--text);
+}
+
+/* ── SWOT grid ─────────────────────────────────────────────── */
+.swot-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
+}
+.swot-cell {
+  background: var(--bg);
+  border-radius: 6px; padding: 14px 16px;
+  border-left: 3px solid;
+}
+.swot-cell.s { border-color: var(--accent3); }
+.swot-cell.w { border-color: var(--accent2); }
+.swot-cell.o { border-color: var(--accent); }
+.swot-cell.t { border-color: var(--accent4); }
+
+.swot-title {
+  font-family: var(--font-d); font-size: 11px;
+  font-weight: 700; letter-spacing: .15em;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.swot-cell.s .swot-title { color: var(--accent3); }
+.swot-cell.w .swot-title { color: var(--accent2); }
+.swot-cell.o .swot-title { color: var(--accent); }
+.swot-cell.t .swot-title { color: var(--accent4); }
+
+.swot-items { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.swot-items li {
+  font-size: 11px; color: var(--text); line-height: 1.5;
+  padding-left: 14px; position: relative;
+}
+.swot-items li::before {
+  content: '→';
+  position: absolute; left: 0;
+  font-size: 10px; color: var(--muted);
+}
+
+/* ── Actions list ──────────────────────────────────────────── */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 14px;
+}
+.action-num {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 1px solid var(--accent); border-radius: 4px;
+  display: grid; place-items: center;
+  font-size: 10px; color: var(--accent); font-weight: 700;
+}
+.action-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+/* ── Comparison table ──────────────────────────────────────── */
+.compare-table-wrap { overflow-x: auto; margin-bottom: 20px; }
+.compare-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+.compare-table th {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  font-family: var(--font-d); font-size: 11px;
+  font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); text-align: left;
+}
+.compare-table td {
+  border: 1px solid var(--border);
+  padding: 10px 14px; vertical-align: top;
+  color: var(--text); line-height: 1.5;
+}
+.compare-table tr:hover td { background: rgba(255,255,255,.02); }
+.compare-table td.company-cell {
+  font-family: var(--font-d); font-size: 14px;
+  font-weight: 700; color: var(--white);
+}
+
+/* ── Strategy block ────────────────────────────────────────── */
+.strategy-card {
+  background: linear-gradient(135deg, rgba(0,229,255,.05), rgba(57,255,156,.03));
+  border: 1px solid rgba(0,229,255,.25);
+  border-radius: var(--r); padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--glow-c);
+}
+.strategy-title {
+  font-family: var(--font-d); font-size: 13px;
+  font-weight: 700; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.strategy-body { font-size: 13px; color: var(--text); line-height: 1.8; }
+
+.opp-list { display: flex; flex-direction: column; gap: 8px; }
+.opp-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 14px;
+}
+.opp-arrow { color: var(--accent3); flex-shrink: 0; margin-top: 1px; }
+.opp-text  { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Skeleton loader ───────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  aside { border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Header ──────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <div>
+      INTEL
+      <div class="logo-sub">Competitor Intelligence System</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">System Ready</span>
+  </div>
+</header>
+
+<main>
+<!-- ── Sidebar ─────────────────────────────────────────────── -->
+<aside>
+
+  <!-- Mode selector -->
+  <div>
+    <div class="section-label">Analysis Mode</div>
+    <div class="mode-tabs">
+      <button class="tab active" onclick="setMode('single')" id="tab-single">Single</button>
+      <button class="tab" onclick="setMode('compare')" id="tab-compare">Compare</button>
+    </div>
+  </div>
+
+  <!-- URL inputs -->
+  <div>
+    <div class="section-label">Target URLs</div>
+    <div class="url-list" id="urlList">
+      <div class="url-row">
+        <span class="url-num">1</span>
+        <input class="url-input" type="url" placeholder="https://competitor.com" id="url-0" />
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn-add" id="btnAdd" onclick="addUrl()" style="display:none">+ Add another URL</button>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <button class="btn-run" id="btnRun" onclick="runAnalysis()">
+    ▶ &nbsp; Run Analysis
+  </button>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-msg" id="progressMsg">Initializing…</div>
+  </div>
+
+  <!-- Agent log -->
+  <div>
+    <div class="section-label">Agent Log</div>
+    <div class="agent-log" id="agentLog">
+      <div class="log-line">
+        <span class="log-time">--:--:--</span>
+        <span class="log-text">Awaiting task…</span>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ── Right panel ─────────────────────────────────────────── -->
+<div class="content-panel">
+  <div class="content-tabs" id="contentTabs">
+    <button class="ctab active" onclick="showTab('overview')" id="ctab-overview">Overview</button>
+    <button class="ctab" onclick="showTab('swot')" id="ctab-swot">SWOT</button>
+    <button class="ctab" onclick="showTab('actions')" id="ctab-actions">Actions</button>
+    <button class="ctab" onclick="showTab('strategy')" id="ctab-strategy" style="display:none">
+      Strategy <span class="badge" id="stratBadge">–</span>
+    </button>
+    <button class="ctab" onclick="showTab('raw')" id="ctab-raw">Raw JSON</button>
+  </div>
+
+  <div class="content-area" id="contentArea">
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>No Analysis Yet</h3>
+      <p>Enter a competitor URL on the left and click <strong style="color:var(--accent)">Run Analysis</strong> to start gathering intelligence.</p>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────
+let mode = 'single';
+let results = [];        // array of {profile, insight}
+let strategy = null;
+let rawData  = null;
+let activeTab = 'overview';
+let urlCount = 1;
+
+// ── Mode ─────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('tab-single').classList.toggle('active', m === 'single');
+  document.getElementById('tab-compare').classList.toggle('active', m === 'compare');
+  document.getElementById('btnAdd').style.display = m === 'compare' ? 'block' : 'none';
+
+  // In single mode, keep only first URL row
+  if (m === 'single') {
+    const rows = document.querySelectorAll('.url-row');
+    rows.forEach((r, i) => { if (i > 0) r.remove(); });
+    urlCount = 1;
+    renumberUrls();
+  }
+
+  // Show/hide strategy tab
+  document.getElementById('ctab-strategy').style.display = m === 'compare' ? 'flex' : 'none';
+}
+
+function addUrl() {
+  if (urlCount >= 5) return;
+  const list = document.getElementById('urlList');
+  const row = document.createElement('div');
+  row.className = 'url-row';
+  row.innerHTML = `
+    <span class="url-num">${urlCount + 1}</span>
+    <input class="url-input" type="url" placeholder="https://competitor${urlCount + 1}.com" id="url-${urlCount}" />
+    <button class="btn-icon" onclick="removeUrl(this)" title="Remove">✕</button>
+  `;
+  list.appendChild(row);
+  urlCount++;
+  renumberUrls();
+}
+
+function removeUrl(btn) {
+  btn.closest('.url-row').remove();
+  urlCount--;
+  renumberUrls();
+}
+
+function renumberUrls() {
+  document.querySelectorAll('.url-num').forEach((el, i) => el.textContent = i + 1);
+  document.querySelectorAll('.url-input').forEach((el, i) => el.id = `url-${i}`);
+}
+
+function getUrls() {
+  return [...document.querySelectorAll('.url-input')]
+    .map(el => el.value.trim())
+    .filter(Boolean);
+}
+
+// ── Log ──────────────────────────────────────────────────────
+function addLog(msg, cls = '') {
+  const log = document.getElementById('agentLog');
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${t}</span><span class="log-text ${cls}">${msg}</span>`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('agentLog').innerHTML = '';
+}
+
+// ── Progress ─────────────────────────────────────────────────
+function setProgress(pct, msg) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressMsg').textContent = msg;
+}
+
+function showProgress(show) {
+  document.getElementById('progressWrap').classList.toggle('visible', show);
+}
+
+// ── Status ───────────────────────────────────────────────────
+function setStatus(text, active = false) {
+  document.getElementById('statusText').textContent = text;
+  document.getElementById('statusDot').style.background = active ? 'var(--accent)' : 'var(--accent3)';
+  document.getElementById('statusDot').style.boxShadow = active
+    ? '0 0 8px var(--accent)' : '0 0 6px var(--accent3)';
+}
+
+// ── Run ──────────────────────────────────────────────────────
+async function runAnalysis() {
+  const urls = getUrls();
+  if (urls.length === 0) {
+    addLog('⚠ No URL provided.', 'err');
+    return;
+  }
+  if (mode === 'compare' && urls.length < 2) {
+    addLog('⚠ Compare mode needs at least 2 URLs.', 'err');
+    return;
+  }
+
+  // Reset state
+  results = [];
+  strategy = null;
+  rawData = null;
+
+  document.getElementById('btnRun').disabled = true;
+  showProgress(true);
+  setProgress(0, 'Starting agents…');
+  setStatus('Running Analysis…', true);
+  clearLog();
+  addLog('Task started', 'act');
+
+  renderSkeleton();
+
+  try {
+    if (mode === 'single') {
+      await streamAnalyze(urls[0]);
+    } else {
+      await streamCompare(urls);
+    }
+  } catch (e) {
+    addLog('Error: ' + e.message, 'err');
+  } finally {
+    document.getElementById('btnRun').disabled = false;
+    setStatus('Analysis Complete');
+  }
+}
+
+async function streamAnalyze(url) {
+  const es = new EventSource(`/analyze/stream?url=${encodeURIComponent(url)}`);
+
+  return new Promise((resolve, reject) => {
+    es.addEventListener('progress', e => {
+      const d = JSON.parse(e.data);
+      setProgress(d.pct, d.message);
+      addLog(d.message, 'act');
+    });
+
+    es.addEventListener('result', e => {
+      const d = JSON.parse(e.data);
+      results = [{ profile: d.profile, insight: d.insight }];
+      rawData = d;
+      renderResults();
+      addLog('Analysis complete ✓', 'ok');
+      es.close();
+      resolve();
+    });
+
+    es.addEventListener('error', e => {
+      try {
+        const d = JSON.parse(e.data);
+        addLog('Error: ' + d.message, 'err');
+      } catch(_) {}
+      es.close();
+      reject(new Error('Stream error'));
+    });
+
+    es.onerror = () => { es.close(); reject(new Error('Connection lost')); };
+  });
+}
+
+async function streamCompare(urls) {
+  const param = urls.map(encodeURIComponent).join(',');
+  const es = new EventSource(`/compare/stream?urls=${param}`);
+
+  return new Promise((resolve, reject) => {
+    es.addEventListener('progress', e => {
+      const d = JSON.parse(e.data);
+      setProgress(d.pct, d.message);
+      addLog(d.message, 'act');
+    });
+
+    es.addEventListener('competitor', e => {
+      const d = JSON.parse(e.data);
+      results[d.index] = { profile: d.profile, insight: d.insight };
+      rawData = { competitors: results };
+      renderResults();
+      addLog(`✓ ${d.profile.company_name || d.profile.url} analyzed`, 'ok');
+    });
+
+    es.addEventListener('strategy', e => {
+      strategy = JSON.parse(e.data);
+      rawData.strategy = strategy;
+      updateStrategyBadge();
+      addLog('Strategy synthesis complete ✓', 'ok');
+      renderResults();
+      es.close();
+      resolve();
+    });
+
+    es.addEventListener('error', e => {
+      try { const d = JSON.parse(e.data); addLog('Error: ' + d.message, 'err'); } catch(_) {}
+      es.close(); reject(new Error('Stream error'));
+    });
+
+    es.onerror = () => { es.close(); reject(new Error('Connection lost')); };
+  });
+}
+
+// ── Tabs ─────────────────────────────────────────────────────
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.ctab').forEach(el => el.classList.remove('active'));
+  document.getElementById('ctab-' + tab).classList.add('active');
+  if (results.length > 0 || rawData) renderResults();
+}
+
+function updateStrategyBadge() {
+  if (!strategy) return;
+  const opps = (strategy.white_space_opportunities || []).length;
+  document.getElementById('stratBadge').textContent = opps + ' opps';
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderSkeleton() {
+  const area = document.getElementById('contentArea');
+  area.innerHTML = `
+    <div class="card">
+      <div class="skeleton" style="height:28px;width:200px;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:14px;width:300px;margin-bottom:20px"></div>
+      <div class="info-grid">
+        ${Array(4).fill('<div class="info-cell"><div class="skeleton" style="height:60px"></div></div>').join('')}
+      </div>
+      <div class="swot-grid">
+        ${Array(4).fill('<div class="swot-cell s"><div class="skeleton" style="height:80px"></div></div>').join('')}
+      </div>
+    </div>`;
+}
+
+function renderResults() {
+  const area = document.getElementById('contentArea');
+
+  if (activeTab === 'raw') {
+    area.innerHTML = `<pre style="font-size:11px;color:var(--text);line-height:1.6;white-space:pre-wrap">${JSON.stringify(rawData, null, 2)}</pre>`;
+    return;
+  }
+
+  if (activeTab === 'strategy') {
+    renderStrategy(area);
+    return;
+  }
+
+  if (results.length === 0) return;
+
+  if (mode === 'single' || results.length === 1) {
+    const r = results[0];
+    if (!r) return;
+
+    if (activeTab === 'overview')  renderOverview(area, r);
+    if (activeTab === 'swot')      renderSwot(area, r);
+    if (activeTab === 'actions')   renderActions(area, r);
+
+  } else {
+    // Compare mode — show all cards
+    if (activeTab === 'overview')  renderCompareOverview(area);
+    if (activeTab === 'swot')      renderCompareSwot(area);
+    if (activeTab === 'actions')   renderCompareActions(area);
+  }
+}
+
+// ── Overview ─────────────────────────────────────────────────
+function renderOverview(area, r) {
+  const p = r.profile, ins = r.insight;
+  area.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="company-name">${esc(p.company_name || 'Unknown')}</div>
+          <div class="company-tag">${esc(p.tagline || '')}</div>
+          <div class="company-url">${esc(p.url || '')}</div>
+        </div>
+        <span class="badge-pill pill-blue">${esc(p.pricing_model || 'Unknown pricing')}</span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-cell-label">Description</div>
+          <div class="info-cell-val">${esc(p.description || '—')}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Target Audience</div>
+          <div class="info-cell-val">${esc(p.target_audience || '—')}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Key Features</div>
+          <div class="chip-list">${(p.key_features||[]).slice(0,6).map(f=>`<span class="chip">${esc(f)}</span>`).join('')}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Tech Stack</div>
+          <div class="chip-list">${(p.tech_stack||[]).slice(0,6).map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Market Positioning</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px">
+          ${esc(ins.market_positioning || '—')}
+        </div>
+      </div>
+
+      ${(p.products_services||[]).length > 0 ? `
+      <div style="margin-top:16px">
+        <div class="section-label">Products & Services</div>
+        <div class="chip-list">
+          ${p.products_services.slice(0,8).map(s=>`<span class="chip pill-green" style="border-color:rgba(57,255,156,.2)">${esc(s)}</span>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${(ins.unique_selling_points||[]).length > 0 ? `
+      <div style="margin-top:16px">
+        <div class="section-label">Unique Selling Points</div>
+        <div class="chip-list">
+          ${ins.unique_selling_points.slice(0,6).map(u=>`<span class="chip pill-gold">${esc(u)}</span>`).join('')}
+        </div>
+      </div>` : ''}
+    </div>`;
+}
+
+// ── SWOT ─────────────────────────────────────────────────────
+function renderSwot(area, r) {
+  const ins = r.insight;
+  area.innerHTML = `
+    <div class="card">
+      <div class="company-name" style="margin-bottom:18px">${esc(r.profile.company_name||'Competitor')} — SWOT</div>
+      <div class="swot-grid">
+        ${swotCell('s','💪 Strengths', ins.strengths)}
+        ${swotCell('w','⚠ Weaknesses', ins.weaknesses)}
+        ${swotCell('o','🚀 Opportunities', ins.opportunities)}
+        ${swotCell('t','🔥 Threats', ins.threats)}
+      </div>
+    </div>`;
+}
+
+function swotCell(cls, title, items) {
+  return `
+    <div class="swot-cell ${cls}">
+      <div class="swot-title">${title}</div>
+      <ul class="swot-items">
+        ${(items||[]).slice(0,6).map(i=>`<li>${esc(i)}</li>`).join('') || '<li style="color:var(--muted)">None identified</li>'}
+      </ul>
+    </div>`;
+}
+
+// ── Actions ───────────────────────────────────────────────────
+function renderActions(area, r) {
+  const actions = r.insight.recommended_actions || [];
+  area.innerHTML = `
+    <div class="card">
+      <div class="company-name" style="margin-bottom:4px">${esc(r.profile.company_name||'Competitor')}</div>
+      <div class="company-tag" style="margin-bottom:18px">Recommended Strategic Actions</div>
+      <div class="action-list">
+        ${actions.length > 0
+          ? actions.map((a,i)=>`
+            <div class="action-item">
+              <div class="action-num">${i+1}</div>
+              <div class="action-text">${esc(a)}</div>
+            </div>`).join('')
+          : '<div style="color:var(--muted);font-size:12px">No actions generated yet.</div>'}
+      </div>
+    </div>`;
+}
+
+// ── Compare overview ─────────────────────────────────────────
+function renderCompareOverview(area) {
+  area.innerHTML = `
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Positioning</th>
+            <th>Pricing</th>
+            <th>Target Audience</th>
+            <th>Top Feature</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${results.filter(Boolean).map(r => `
+            <tr>
+              <td class="company-cell">
+                ${esc(r.profile.company_name||r.profile.url||'–')}<br>
+                <span style="font-size:10px;color:var(--muted);font-family:var(--font-m);font-weight:400">${esc(r.profile.tagline||'')}</span>
+              </td>
+              <td>${esc(r.insight.market_positioning||'–')}</td>
+              <td><span class="badge-pill pill-blue">${esc(r.profile.pricing_model||'–')}</span></td>
+              <td>${esc(r.profile.target_audience||'–')}</td>
+              <td>${esc((r.profile.key_features||[])[0]||'–')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── Compare SWOT ─────────────────────────────────────────────
+function renderCompareSwot(area) {
+  area.innerHTML = results.filter(Boolean).map(r => `
+    <div class="card">
+      <div class="company-name" style="margin-bottom:18px">${esc(r.profile.company_name||r.profile.url||'Competitor')}</div>
+      <div class="swot-grid">
+        ${swotCell('s','💪 Strengths', r.insight.strengths)}
+        ${swotCell('w','⚠ Weaknesses', r.insight.weaknesses)}
+        ${swotCell('o','🚀 Opportunities', r.insight.opportunities)}
+        ${swotCell('t','🔥 Threats', r.insight.threats)}
+      </div>
+    </div>`).join('');
+}
+
+// ── Compare actions ───────────────────────────────────────────
+function renderCompareActions(area) {
+  area.innerHTML = results.filter(Boolean).map(r => `
+    <div class="card">
+      <div class="company-name" style="margin-bottom:4px">${esc(r.profile.company_name||r.profile.url||'Competitor')}</div>
+      <div class="company-tag" style="margin-bottom:14px">Recommended Actions</div>
+      <div class="action-list">
+        ${(r.insight.recommended_actions||[]).map((a,i)=>`
+          <div class="action-item">
+            <div class="action-num">${i+1}</div>
+            <div class="action-text">${esc(a)}</div>
+          </div>`).join('') || '<div style="color:var(--muted);font-size:12px">Analyzing…</div>'}
+      </div>
+    </div>`).join('');
+}
+
+// ── Strategy ──────────────────────────────────────────────────
+function renderStrategy(area) {
+  if (!strategy) {
+    area.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📈</div>
+      <h3>Strategy Not Ready</h3>
+      <p>Run a Compare analysis to generate the multi-competitor strategic synthesis.</p>
+    </div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="strategy-card">
+      <div class="strategy-title">🧭 Executive Summary</div>
+      <div class="strategy-body">${esc(strategy.executive_summary||'—')}</div>
+    </div>
+
+    <div class="strategy-card" style="border-color:rgba(57,255,156,.25);background:linear-gradient(135deg,rgba(57,255,156,.04),rgba(0,229,255,.02))">
+      <div class="strategy-title" style="color:var(--accent3)">🌟 White Space Opportunities</div>
+      <div class="opp-list">
+        ${(strategy.white_space_opportunities||[]).map(o=>`
+          <div class="opp-item">
+            <span class="opp-arrow">→</span>
+            <span class="opp-text">${esc(o)}</span>
+          </div>`).join('') || '<div style="color:var(--muted);font-size:12px">None identified</div>'}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Industry Trends</div>
+      <div class="chip-list" style="margin-bottom:16px">
+        ${(strategy.industry_trends||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join('')}
+      </div>
+
+      <div class="section-label">Differentiation Strategy</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.7;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:16px">
+        ${esc(strategy.differentiation_strategy||'—')}
+      </div>
+
+      <div class="section-label">Priority Actions</div>
+      <div class="action-list">
+        ${(strategy.priority_actions||[]).map((a,i)=>`
+          <div class="action-item">
+            <div class="action-num" style="border-color:var(--accent3);color:var(--accent3)">${i+1}</div>
+            <div class="action-text">${esc(a)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Util ──────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
