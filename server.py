@@ -6,6 +6,7 @@ Windows-compatible: all blocking agent calls run in thread pool via run_in_execu
 import os
 import json
 import asyncio
+import traceback
 from datetime import datetime
 from dataclasses import asdict
 
@@ -39,14 +40,14 @@ def get_team() -> "CompetitorIntelligenceTeam":
         if not AGENTS_AVAILABLE:
             raise HTTPException(status_code=500, detail="competitor_agents module not available.")
         fc_key = os.getenv("FIRECRAWL_API_KEY", "")
-        oa_key = os.getenv("OPENAI_API_KEY", "")
+        groq_key = os.getenv("GROQ_API_KEY", "")
         if not fc_key:
             raise HTTPException(status_code=400, detail="FIRECRAWL_API_KEY not set.")
-        if not oa_key:
-            raise HTTPException(status_code=400, detail="OPENAI_API_KEY not set.")
+        if not groq_key:
+            raise HTTPException(status_code=400, detail="GROQ_API_KEY not set.")
         _team = CompetitorIntelligenceTeam(
             firecrawl_api_key=fc_key,
-            openai_api_key=oa_key,
+            groq_api_key=groq_key,
         )
     return _team
 
@@ -72,7 +73,7 @@ async def health():
         "status": "ok",
         "agents_available": AGENTS_AVAILABLE,
         "firecrawl_key_set": bool(os.getenv("FIRECRAWL_API_KEY")),
-        "openai_key_set": bool(os.getenv("OPENAI_API_KEY")),
+        "groq_key_set": bool(os.getenv("GROQ_API_KEY")),
     }
 
 
@@ -105,7 +106,9 @@ async def analyze_stream(url: str):
         except HTTPException as e:
             yield sse("error", {"message": e.detail})
         except Exception as e:
-            yield sse("error", {"message": str(e)})
+            print("=== FULL TRACEBACK (analyze_stream) ===")
+            print(traceback.format_exc())
+            yield sse("error", {"message": f"{e}\n\n{traceback.format_exc()}"})
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -171,7 +174,9 @@ async def compare_stream(urls: str):
         except HTTPException as e:
             yield sse("error", {"message": e.detail})
         except Exception as e:
-            yield sse("error", {"message": str(e)})
+            print("=== FULL TRACEBACK (compare_stream) ===")
+            print(traceback.format_exc())
+            yield sse("error", {"message": f"{e}\n\n{traceback.format_exc()}"})
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
